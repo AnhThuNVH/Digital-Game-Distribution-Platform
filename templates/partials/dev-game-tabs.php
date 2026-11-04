@@ -5,6 +5,7 @@ $base = '/dev/games/' . $gid;
 $sections = [
     'details' => ['', 'Chi tiết'],
     'media' => ['/media', 'Ảnh & video'],
+    'downloads' => ['/downloads', 'Liên kết tải về'],
     'authors' => ['/authors', 'Tác giả'],
     'releases' => ['/releases', 'Phiên bản'],
     'devlogs' => ['/devlogs', 'Nhật ký'],
