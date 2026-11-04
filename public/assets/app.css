@@ -372,6 +372,14 @@ input[type="file"].input { padding: 8px 14px; height: auto; }
 .auth-card h1 { font-size: var(--fs-title); font-weight: 600; }
 .auth-card .switch-line { color: var(--muted); }
 .auth-card .switch-line a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.auth-card .inline-form { display: inline; }
+.auth-card .account-preview { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-inner); background: var(--raised); }
+.auth-card .account-preview .grow { display: grid; gap: 2px; min-width: 0; }
+.auth-card .account-preview .account-name { font-size: var(--fs-body); font-weight: 600; }
+.auth-card .account-preview .muted { font-size: var(--fs-small); }
+.auth-card .resend-form { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; }
+.auth-card .link-button { background: none; border: 0; padding: 0; font: inherit; color: var(--text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.auth-card .link-button:disabled { color: var(--muted); text-decoration: none; cursor: not-allowed; }
 
 /* ---------- charts (server-rendered bars) ---------- */
 /* Bars cap at 24px with 4px rounded data-ends; the full-height column is the hover target. */

@@ -92,4 +92,32 @@
       img.addEventListener('error', swap, { once: true });
     }
   });
+
+  // Resend verification code: the button counts down and stays disabled.
+  document.querySelectorAll('[data-resend]').forEach(function (button) {
+    var remaining = parseInt(button.getAttribute('data-wait') || '0', 10);
+    if (remaining <= 0) return;
+    var tick = function () {
+      if (remaining <= 0) {
+        button.disabled = false;
+        button.removeAttribute('data-wait');
+        button.textContent = 'Gửi lại mã';
+        return;
+      }
+      button.disabled = true;
+      button.setAttribute('data-wait', String(remaining));
+      button.textContent = 'Vui lòng đợi ' + remaining + ' giây…';
+      remaining -= 1;
+      window.setTimeout(tick, 1000);
+    };
+    tick();
+  });
+
+  // Requesting a code: one click only, then the button waits.
+  document.querySelectorAll('[data-send-code]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      button.disabled = true;
+      button.textContent = 'Đang gửi…';
+    });
+  });
 })();

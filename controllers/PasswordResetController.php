@@ -3,11 +3,12 @@
 // PASSWORD RESET CONTROLLER - quên mật khẩu bằng mã xác nhận gửi qua email.
 //
 // Luồng:
-//   1. Người dùng nhập email -> hệ thống sinh mã 6 chữ số, lưu dạng băm kèm
-//      thời hạn, gửi mã về email và trả lời chung chung (không tiết lộ email
-//      nào có trong hệ thống).
-//   2. Người dùng nhận mã, nhập mã + mật khẩu mới -> mật khẩu được đổi, mã bị
-//      vô hiệu, các phiên đang đăng nhập khác không còn dùng được mật khẩu cũ.
+//   1. Người dùng nhập email và bấm "Kiểm tra" -> hệ thống tìm tài khoản và
+//      hiện thông tin (tên đăng nhập, ảnh đại diện) để người dùng xác nhận đúng
+//      tài khoản của mình.
+//   2. Người dùng đồng ý tiếp tục -> hệ thống sinh mã 6 chữ số, lưu dạng băm
+//      kèm thời hạn và gửi mã về email.
+//   3. Người dùng nhập mã + mật khẩu mới -> mật khẩu được đổi, mã bị vô hiệu.
 //
 // Mã xác nhận chỉ dùng được trong 10 phút và tối đa 5 lần nhập sai.
 // =============================================================================
@@ -16,6 +17,8 @@ class PasswordResetController extends Controller {
     /** Số lần yêu cầu gửi mã cho cùng một email trong khung thời gian. */
     private const MAX_REQUESTS = 5;
     private const WINDOW_MINUTES = 15;
+    /** Thời gian chờ tối thiểu giữa hai lần gửi mã cho cùng một tài khoản (giây). */
+    private const RESEND_COOLDOWN = 60;
 
     public function showForgotPassword(array $params = []) {
         if ($this->currentUser()) {
@@ -24,8 +27,8 @@ class PasswordResetController extends Controller {
         $this->render('auth/forgot-password', ['pageTitle' => 'Quên mật khẩu']);
     }
 
-    /** Nhận email, sinh mã xác nhận và gửi đi. */
-    public function sendResetCode(array $params = []) {
+    /** Kiểm tra email có tồn tại và hiện thông tin tài khoản để người dùng đồng ý. */
+    public function checkEmail(array $params = []) {
         $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 254) {
             $this->fail('Email không hợp lệ.', '/auth/forgot-password');
@@ -37,6 +40,49 @@ class PasswordResetController extends Controller {
         }
         if ($user['trang_thai'] !== 'active') {
             $this->fail('Tài khoản này không còn hoạt động. Vui lòng liên hệ quản trị viên.', '/auth/forgot-password');
+        }
+
+        audit('password_reset_email_checked', 'nguoi_dung', (int)$user['ma'], ['email' => $email]);
+        $this->render('auth/forgot-password-account', [
+            'pageTitle' => 'Kiểm tra tài khoản',
+            'user' => $user,
+            'email' => $email,
+        ]);
+    }
+
+    /** Sinh mã xác nhận và gửi đi (sau khi người dùng đã đồng ý ở bước kiểm tra). */
+    public function sendResetCode(array $params = []) {
+        $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 254) {
+            $this->fail('Email không hợp lệ.', '/auth/forgot-password');
+        }
+
+        // Chặn ngay khi kiểm tra email: lần bấm lại trong thời gian chờ chỉ trả
+        // lại kết quả lần trước, không kiểm tra email và không gửi mail lần nữa.
+        $sent = $this->lastSentResult($email);
+        if ($sent !== null) {
+            flash('success', $sent);
+            $this->redirect('/auth/reset-password?email=' . rawurlencode($email));
+        }
+
+        $user = UserModel::findBy('email', $email);
+        if (!$user) {
+            $this->fail('Email này không có trong hệ thống.', '/auth/forgot-password');
+        }
+        if ($user['trang_thai'] !== 'active') {
+            $this->fail('Tài khoản này không còn hoạt động. Vui lòng liên hệ quản trị viên.', '/auth/forgot-password');
+        }
+
+        $userId = (int)$user['ma'];
+
+        // Đã yêu cầu gửi mã gần đây ở phiên khác: chặn gửi lại, chỉ trả kết quả.
+        $wait = $this->cooldownRemaining($userId);
+        if ($wait > 0) {
+            audit('password_reset_resend_blocked', 'nguoi_dung', $userId, ['email' => $email, 'wait' => $wait]);
+            $message = 'Mã xác nhận đã được gửi tới ' . $email . '. Vui lòng đợi ' . $wait . ' giây nữa rồi gửi lại.';
+            $this->rememberSentResult($email, $message);
+            flash('success', $message);
+            $this->redirect('/auth/reset-password?email=' . rawurlencode($email));
         }
 
         if (!Mailer::configured()) {
@@ -51,16 +97,23 @@ class PasswordResetController extends Controller {
         $expiresAt = (new DateTime('now', new DateTimeZone(APP_TIMEZONE)))
             ->modify('+' . PasswordResetModel::TTL_MINUTES . ' minutes')
             ->format('Y-m-d H:i:s');
-        PasswordResetModel::issue((int)$user['ma'], $email, $code, $expiresAt);
+        PasswordResetModel::issue($userId, $email, $code, $expiresAt);
 
-        $sent = Mailer::send(
+        $delivered = Mailer::send(
             $email,
             'Mã xác nhận đặt lại mật khẩu',
             $this->mailBody($user, $code, $expiresAt)
         );
-        audit('password_reset_requested', 'nguoi_dung', (int)$user['ma'], ['email' => $email, 'sent' => $sent]);
+        audit('password_reset_requested', 'nguoi_dung', $userId, ['email' => $email, 'sent' => $delivered]);
 
-        flash('success', 'Mã xác nhận đã được gửi tới ' . $email . '. Vui lòng kiểm tra hộp thư của bạn.');
+        if (!$delivered) {
+            PasswordResetModel::invalidateAll($userId);
+            $this->fail('Không gửi được email. Vui lòng kiểm tra cấu hình SMTP hoặc thử lại sau.', '/auth/forgot-password');
+        }
+
+        $message = 'Mã xác nhận đã được gửi tới ' . $email . '. Vui lòng kiểm tra hộp thư của bạn.';
+        $this->rememberSentResult($email, $message);
+        flash('success', $message);
         $this->redirect('/auth/reset-password?email=' . rawurlencode($email));
     }
 
@@ -69,9 +122,11 @@ class PasswordResetController extends Controller {
             $this->redirect('/library');
         }
         $email = mb_strtolower(trim((string)($_GET['email'] ?? '')));
+        $user = $email !== '' ? UserModel::findBy('email', $email) : null;
         $this->render('auth/reset-password', [
             'pageTitle' => 'Đặt lại mật khẩu',
             'email' => $email,
+            'resendWait' => $user ? $this->cooldownRemaining((int)$user['ma']) : 0,
         ]);
     }
 
@@ -122,6 +177,36 @@ class PasswordResetController extends Controller {
 
         flash('success', 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập với mật khẩu mới.');
         $this->redirect('/auth/login');
+    }
+
+    /**
+     * Kết quả gửi mã đã lưu trong phiên cho email này, hoặc null nếu phiên
+     * chưa gửi mã nào (hoặc đã quá thời gian chờ).
+     */
+    private function lastSentResult(string $email): ?string {
+        $stored = $_SESSION['password_reset_sent'][$email] ?? null;
+        if (!is_array($stored) || !isset($stored['message'], $stored['at'])) {
+            return null;
+        }
+        if (time() - (int)$stored['at'] > self::RESEND_COOLDOWN) {
+            return null;
+        }
+        return (string)$stored['message'];
+    }
+
+    /** Nhớ kết quả gửi mã để lần bấm lại chỉ trả lại kết quả này. */
+    private function rememberSentResult(string $email, string $message): void {
+        $_SESSION['password_reset_sent'][$email] = ['message' => $message, 'at' => time()];
+    }
+
+    /** Số giây còn phải chờ trước khi được gửi mã mới (0 nếu đã hết chờ). */
+    private function cooldownRemaining(int $userId): int {
+        $last = PasswordResetModel::lastRequestedAt($userId);
+        if ($last === null) {
+            return 0;
+        }
+        $wait = self::RESEND_COOLDOWN - (time() - $last);
+        return $wait > 0 ? $wait : 0;
     }
 
     /** Số lần yêu cầu gửi mã cho email này trong khung thời gian. */
