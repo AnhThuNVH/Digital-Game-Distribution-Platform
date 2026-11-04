@@ -1,6 +1,6 @@
 <?php
 // =============================================================================
-// USER MODEL - Table: nguoi_dung
+// USER MODEL - Tables: nguoi_dung, nguoi_dung_vai_tro, vai_tro, cai_dat_nguoi_dung
 // =============================================================================
 
 class UserModel extends Model {
@@ -8,145 +8,107 @@ class UserModel extends Model {
     protected static $pk = 'ma';
 
     public static function create(string $username, string $email, string $password, string $displayName): int {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        $userId = self::insert([
-            'ten_dang_nhap' => $username,
-            'email' => $email,
-            'mat_khau_da_bam' => $hash,
-            'ten_hien_thi' => $displayName,
-        ]);
-        if (!self::updateProfile($userId, [
-            'url_anh_dai_dien' => app_url('/avatars/' . $userId),
-        ])) {
-            throw new RuntimeException('Unable to assign a generated avatar to the new account.');
-        }
-        return $userId;
+        return self::transaction(function () use ($username, $email, $password, $displayName) {
+            $userId = self::insert([
+                'ten_dang_nhap' => $username,
+                'email' => $email,
+                'mat_khau_da_bam' => password_hash($password, PASSWORD_DEFAULT),
+                'ten_hien_thi' => $displayName,
+            ]);
+            $player = RoleModel::findByCode('player');
+            if ($player) {
+                self::addRole($userId, (int)$player['ma']);
+            }
+            self::run('INSERT IGNORE INTO cai_dat_nguoi_dung (nguoi_dung_id, tien_te_uu_tien) VALUES (:uid, :cur)', [':uid' => $userId, ':cur' => APP_CURRENCY]);
+            return $userId;
+        });
     }
 
-    public static function authenticate(string $email, string $password): ?array {
-        $user = self::findBy('email', $email);
-        if ($user && password_verify($password, $user['mat_khau_da_bam'])) {
-            unset($user['mat_khau_da_bam']);
-            return $user;
-        }
-        return null;
+    /** Look a user up by e-mail or username; returns the row including the hash. */
+    public static function findForLogin(string $login): ?array {
+        return self::one('SELECT * FROM nguoi_dung WHERE email = :e OR ten_dang_nhap = :u LIMIT 1', [':e' => $login, ':u' => $login]);
     }
 
-    public static function updateProfile(int $id, array $data): bool {
-        return self::update($id, $data);
+    public static function findByUsername(string $username): ?array {
+        return self::one('SELECT * FROM nguoi_dung WHERE ten_dang_nhap = :u LIMIT 1', [':u' => $username]);
     }
 
-    public static function listForAdmin(string $query, int $limit, int $offset): array {
-        $where = '';
+    public static function publicFields(array $user): array {
+        unset($user['mat_khau_da_bam']);
+        return $user;
+    }
+
+    public static function settings(int $userId): array {
+        $row = self::one('SELECT * FROM cai_dat_nguoi_dung WHERE nguoi_dung_id = :uid', [':uid' => $userId]);
+        return $row ?: [
+            'nguoi_dung_id' => $userId, 'pham_vi_hien_thi_ho_so' => 'public', 'hien_thi_game_so_huu' => 1, 'cho_phep_nhan_tin' => 1,
+            'email_cap_nhat_san_pham' => 1, 'email_cap_nhat_cong_dong' => 1, 'ngon_ngu_uu_tien' => 'vi', 'tien_te_uu_tien' => APP_CURRENCY,
+        ];
+    }
+
+    public static function listForAdmin(string $query, string $status, string $role, int $limit, int $offset): array {
+        [$where, $params] = self::adminWhere($query, $status, $role);
+        $params[':limit'] = $limit;
+        $params[':offset'] = $offset;
+        return self::query("SELECT u.ma, u.ten_dang_nhap, u.email, u.ten_hien_thi, u.url_anh_dai_dien, u.trang_thai, u.ngay_tao,
+                (SELECT GROUP_CONCAT(r.ma_vai_tro ORDER BY r.ma SEPARATOR ',') FROM nguoi_dung_vai_tro x JOIN vai_tro r ON r.ma = x.vai_tro_id WHERE x.nguoi_dung_id = u.ma) AS vai_tro,
+                (SELECT COUNT(*) FROM quyen_so_huu_tro_choi o WHERE o.nguoi_dung_id = u.ma AND o.trang_thai = 'active') AS so_game
+            FROM nguoi_dung u WHERE $where ORDER BY u.ngay_tao DESC, u.ma DESC LIMIT :limit OFFSET :offset", $params);
+    }
+
+    public static function countForAdmin(string $query, string $status, string $role): int {
+        [$where, $params] = self::adminWhere($query, $status, $role);
+        return (int)self::scalar("SELECT COUNT(*) FROM nguoi_dung u WHERE $where", $params);
+    }
+
+    private static function adminWhere(string $query, string $status, string $role): array {
+        $where = ['1=1'];
         $params = [];
         if ($query !== '') {
-            $where = ' WHERE ten_hien_thi LIKE :display_query
-                       OR ten_dang_nhap LIKE :username_query
-                       OR email LIKE :email_query
-                       OR CAST(ma AS CHAR) = :user_id';
-            $likeQuery = '%' . $query . '%';
-            $params = [
-                ':display_query' => $likeQuery,
-                ':username_query' => $likeQuery,
-                ':email_query' => $likeQuery,
-                ':user_id' => $query,
-            ];
+            $where[] = '(u.ten_hien_thi LIKE :q1 OR u.ten_dang_nhap LIKE :q2 OR u.email LIKE :q3 OR CAST(u.ma AS CHAR) = :q4)';
+            $params += [':q1' => "%$query%", ':q2' => "%$query%", ':q3' => "%$query%", ':q4' => $query];
         }
-
-        $sql = 'SELECT * FROM ' . self::$table . $where
-            . ' ORDER BY ngay_tao DESC LIMIT :limit OFFSET :offset';
-        $stmt = self::db()->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        if (in_array($status, ['active', 'suspended', 'deleted'], true)) {
+            $where[] = 'u.trang_thai = :status';
+            $params[':status'] = $status;
         }
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll();
-    }
-
-    public static function countForAdmin(string $query): int {
-        $where = '';
-        $params = [];
-        if ($query !== '') {
-            $where = ' WHERE ten_hien_thi LIKE :display_query
-                       OR ten_dang_nhap LIKE :username_query
-                       OR email LIKE :email_query
-                       OR CAST(ma AS CHAR) = :user_id';
-            $likeQuery = '%' . $query . '%';
-            $params = [
-                ':display_query' => $likeQuery,
-                ':username_query' => $likeQuery,
-                ':email_query' => $likeQuery,
-                ':user_id' => $query,
-            ];
+        if (in_array($role, ['player', 'developer', 'moderator', 'admin'], true)) {
+            $where[] = 'EXISTS (SELECT 1 FROM nguoi_dung_vai_tro x JOIN vai_tro r ON r.ma = x.vai_tro_id WHERE x.nguoi_dung_id = u.ma AND r.ma_vai_tro = :role)';
+            $params[':role'] = $role;
         }
-        $stmt = self::db()->prepare('SELECT COUNT(*) FROM ' . self::$table . $where);
-        $stmt->execute($params);
-        return (int)$stmt->fetchColumn();
+        return [implode(' AND ', $where), $params];
     }
 
     public static function getRoles(int $userId): array {
-        $sql = "SELECT r.ma_vai_tro, r.ten_vai_tro
-                FROM vai_tro r
-                INNER JOIN nguoi_dung_vai_tro uvr ON uvr.vai_tro_id = r.ma
-                WHERE uvr.nguoi_dung_id = :uid";
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([':uid' => $userId]);
-        return $stmt->fetchAll();
+        return self::query('SELECT r.ma, r.ma_vai_tro, r.ten_vai_tro FROM vai_tro r
+            JOIN nguoi_dung_vai_tro x ON x.vai_tro_id = r.ma WHERE x.nguoi_dung_id = :uid ORDER BY r.ma', [':uid' => $userId]);
     }
 
     public static function addRole(int $userId, int $roleId): bool {
-        $sql = "INSERT IGNORE INTO nguoi_dung_vai_tro (nguoi_dung_id, vai_tro_id) VALUES (:uid, :rid)";
-        $stmt = self::db()->prepare($sql);
-        return $stmt->execute([':uid' => $userId, ':rid' => $roleId]);
+        return self::run('INSERT IGNORE INTO nguoi_dung_vai_tro (nguoi_dung_id, vai_tro_id) VALUES (:uid, :rid)', [':uid' => $userId, ':rid' => $roleId]) >= 0;
     }
 
+    /** Replace a user's roles. Refuses to remove the last administrator. */
     public static function syncRoles(int $userId, array $roleIds): bool {
-        $db = self::db();
-        $db->beginTransaction();
-
-        try {
+        return self::transaction(function () use ($userId, $roleIds) {
             $adminRole = RoleModel::findByCode('admin');
             if (!$adminRole) {
                 throw new RuntimeException('Không tìm thấy vai trò quản trị viên.');
             }
-
-            $lock = $db->prepare('SELECT ma FROM vai_tro WHERE ma = :role_id FOR UPDATE');
-            $lock->execute([':role_id' => $adminRole['ma']]);
-
-            $currentRoleStmt = $db->prepare(
-                'SELECT vai_tro_id FROM nguoi_dung_vai_tro WHERE nguoi_dung_id = :user_id'
-            );
-            $currentRoleStmt->execute([':user_id' => $userId]);
-            $currentRoleIds = array_map('intval', $currentRoleStmt->fetchAll(PDO::FETCH_COLUMN));
-            if (in_array((int)$adminRole['ma'], $currentRoleIds, true)
-                && !in_array((int)$adminRole['ma'], $roleIds, true)) {
-                $adminCountStmt = $db->prepare(
-                    'SELECT COUNT(*) FROM nguoi_dung_vai_tro WHERE vai_tro_id = :role_id'
-                );
-                $adminCountStmt->execute([':role_id' => $adminRole['ma']]);
-                if ((int)$adminCountStmt->fetchColumn() <= 1) {
-                    $db->rollBack();
+            $adminId = (int)$adminRole['ma'];
+            self::query('SELECT ma FROM vai_tro WHERE ma = :rid FOR UPDATE', [':rid' => $adminId]);
+            $current = array_map('intval', self::column('SELECT vai_tro_id FROM nguoi_dung_vai_tro WHERE nguoi_dung_id = :uid', [':uid' => $userId]));
+            if (in_array($adminId, $current, true) && !in_array($adminId, $roleIds, true)) {
+                $admins = (int)self::scalar("SELECT COUNT(*) FROM nguoi_dung_vai_tro x JOIN nguoi_dung u ON u.ma = x.nguoi_dung_id WHERE x.vai_tro_id = :rid AND u.trang_thai = 'active'", [':rid' => $adminId]);
+                if ($admins <= 1) {
                     return false;
                 }
             }
-
-            $delete = $db->prepare('DELETE FROM nguoi_dung_vai_tro WHERE nguoi_dung_id = :user_id');
-            $delete->execute([':user_id' => $userId]);
-            $insert = $db->prepare(
-                'INSERT INTO nguoi_dung_vai_tro (nguoi_dung_id, vai_tro_id) VALUES (:user_id, :role_id)'
-            );
-            foreach ($roleIds as $roleId) {
-                $insert->execute([':user_id' => $userId, ':role_id' => $roleId]);
+            self::run('DELETE FROM nguoi_dung_vai_tro WHERE nguoi_dung_id = :uid', [':uid' => $userId]);
+            foreach (array_unique($roleIds) as $roleId) {
+                self::run('INSERT INTO nguoi_dung_vai_tro (nguoi_dung_id, vai_tro_id) VALUES (:uid, :rid)', [':uid' => $userId, ':rid' => (int)$roleId]);
             }
-            $db->commit();
             return true;
-        } catch (Throwable $error) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
-            }
-            throw $error;
-        }
+        });
     }
 }

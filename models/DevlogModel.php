@@ -1,6 +1,7 @@
 <?php
 // =============================================================================
 // DEVLOG MODEL - Table: nhat_ky_phat_trien
+// Unique key uq_devlog_game_slug (tro_choi_id, duong_dan_rut_gon).
 // =============================================================================
 
 class DevlogModel extends Model {
@@ -17,19 +18,34 @@ class DevlogModel extends Model {
             'ngay_cong_bo' => $publish ? date('Y-m-d H:i:s') : null,
         ]);
         if ($publish) {
-            $game = GameModel::find($gameId);
-            if ($game) {
-                NotificationModel::notifyGameFollowers(
-                    $gameId,
-                    $authorId,
-                    'game_devlog',
-                    'Nhật ký phát triển mới',
-                    $game['tieu_de'] . ': ' . $title,
-                    '/games/' . rawurlencode($game['duong_dan_rut_gon'])
-                );
-            }
+            self::notifyPublished($gameId, $authorId, $title, $slug);
         }
         return $devlogId;
+    }
+
+    /** Tell the game's followers about a newly published post. */
+    public static function notifyPublished(int $gameId, int $authorId, string $title, string $slug): void {
+        $game = GameModel::find($gameId);
+        if ($game && in_array($game['trang_thai'], ['published', 'unlisted'], true)) {
+            NotificationModel::notifyGameFollowers(
+                $gameId,
+                $authorId,
+                'game_devlog',
+                'Nhật ký phát triển mới',
+                $game['tieu_de'] . ': ' . $title,
+                '/games/' . rawurlencode($game['duong_dan_rut_gon']) . '/devlogs/' . rawurlencode($slug)
+            );
+        }
+    }
+
+    /** A slug unique within the game, derived from the title. */
+    public static function uniqueSlug(int $gameId, string $title): string {
+        $base = mb_substr(slugify($title), 0, 200) ?: 'nhat-ky';
+        $slug = $base;
+        for ($i = 2; self::scalar('SELECT 1 FROM nhat_ky_phat_trien WHERE tro_choi_id = :g AND duong_dan_rut_gon = :s', [':g' => $gameId, ':s' => $slug]); $i++) {
+            $slug = $base . '-' . $i;
+        }
+        return $slug;
     }
 
     public static function listForGame(int $gameId): array {

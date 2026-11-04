@@ -15,7 +15,7 @@ This project was developed as part of the "Open Source Software Development" cou
 
 1. Place the project folder in the XAMPP `htdocs` directory.
 2. Start **Apache** and **MySQL** from the XAMPP Control Panel.
-3. In phpMyAdmin, select the `nen_tang_game_doc_lap_vi_v2` database and import `new.sql`.
+3. In phpMyAdmin, create the `nen_tang_game_doc_lap_vi_v2` database (collation `utf8mb4_unicode_ci`), select it and import `database/du_lieu.sql`. The file contains the full schema and all current data; keep `public/uploads/` with the project, because the data points to the images stored there.
 4. Confirm the database settings in `config/config.php`. They match the default XAMPP MySQL account (`root`, no password).
 5. Open `http://localhost/<project-folder>/` and register an account.
 
