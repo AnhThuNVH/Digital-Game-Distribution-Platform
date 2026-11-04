@@ -117,9 +117,9 @@ $checks = static function (string $name, array $items, string $text, array $sele
                 </div>
             </div>
             <div class="field">
-                <label for="g-url">Liên kết chơi ngoài</label>
+                <label for="g-url">Liên kết chơi trên web</label>
                 <input class="input" id="g-url" type="url" name="url_choi_ngoai" maxlength="1000" value="<?= e((string)$v('url_choi_ngoai')) ?>" placeholder="https://">
-                <span class="hint">Trang chơi trên trình duyệt hoặc trang chủ dự án, nếu có.</span>
+                <span class="hint">Trang chơi trên trình duyệt (game môi trường web) hoặc trang chủ dự án. Dùng cùng lúc với các liên kết tải về được.</span>
             </div>
         </div>
     </section>
