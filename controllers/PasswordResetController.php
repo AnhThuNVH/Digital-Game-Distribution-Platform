@@ -31,6 +31,14 @@ class PasswordResetController extends Controller {
             $this->fail('Email không hợp lệ.', '/auth/forgot-password');
         }
 
+        $user = UserModel::findBy('email', $email);
+        if (!$user) {
+            $this->fail('Email này không có trong hệ thống.', '/auth/forgot-password');
+        }
+        if ($user['trang_thai'] !== 'active') {
+            $this->fail('Tài khoản này không còn hoạt động. Vui lòng liên hệ quản trị viên.', '/auth/forgot-password');
+        }
+
         if (!Mailer::configured()) {
             $this->fail('Hệ thống chưa cấu hình gửi email. Vui lòng liên hệ quản trị viên.', '/auth/forgot-password');
         }
@@ -39,26 +47,20 @@ class PasswordResetController extends Controller {
             $this->fail('Bạn đã yêu cầu mã xác nhận quá nhiều lần. Hãy thử lại sau ' . self::WINDOW_MINUTES . ' phút.', '/auth/forgot-password');
         }
 
-        $user = UserModel::findBy('email', $email);
-        if ($user && $user['trang_thai'] === 'active') {
-            $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $expiresAt = (new DateTime('now', new DateTimeZone(APP_TIMEZONE)))
-                ->modify('+' . PasswordResetModel::TTL_MINUTES . ' minutes')
-                ->format('Y-m-d H:i:s');
-            PasswordResetModel::issue((int)$user['ma'], $email, $code, $expiresAt);
+        $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = (new DateTime('now', new DateTimeZone(APP_TIMEZONE)))
+            ->modify('+' . PasswordResetModel::TTL_MINUTES . ' minutes')
+            ->format('Y-m-d H:i:s');
+        PasswordResetModel::issue((int)$user['ma'], $email, $code, $expiresAt);
 
-            $sent = Mailer::send(
-                $email,
-                'Mã xác nhận đặt lại mật khẩu',
-                $this->mailBody($user, $code, $expiresAt)
-            );
-            audit('password_reset_requested', 'nguoi_dung', (int)$user['ma'], ['email' => $email, 'sent' => $sent]);
-        } else {
-            // Không tiết lộ email có tồn tại hay không.
-            audit('password_reset_requested', 'nguoi_dung', null, ['email' => $email]);
-        }
+        $sent = Mailer::send(
+            $email,
+            'Mã xác nhận đặt lại mật khẩu',
+            $this->mailBody($user, $code, $expiresAt)
+        );
+        audit('password_reset_requested', 'nguoi_dung', (int)$user['ma'], ['email' => $email, 'sent' => $sent]);
 
-        flash('success', 'Nếu email này có trong hệ thống, mã xác nhận đã được gửi. Vui lòng kiểm tra hộp thư của bạn.');
+        flash('success', 'Mã xác nhận đã được gửi tới ' . $email . '. Vui lòng kiểm tra hộp thư của bạn.');
         $this->redirect('/auth/reset-password?email=' . rawurlencode($email));
     }
 
