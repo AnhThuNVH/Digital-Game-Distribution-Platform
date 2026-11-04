@@ -30,8 +30,15 @@ define('APP_DIR', dirname(__DIR__));
 define('VIEWS_DIR', APP_DIR . '/templates');
 define('PUBLIC_DIR', APP_DIR . '/public');
 
-// Cấu hình gửi email (SMTP). File này nạp config/mail.local.php nếu có.
-require_once __DIR__ . '/mail.php';
+// Cấu hình gửi email (SMTP).
+// config/mail.php là file cục bộ (không commit) nên có thể không tồn tại;
+// khi đó dùng config/mail.example.php làm mẫu cho tới khi người dùng tạo
+// file riêng.
+if (is_file(__DIR__ . '/mail.php')) {
+    require_once __DIR__ . '/mail.php';
+} elseif (is_file(__DIR__ . '/mail.example.php')) {
+    require_once __DIR__ . '/mail.example.php';
+}
 
 // Thư viện ngoài (PHPMailer) qua Composer.
 if (is_file(APP_DIR . '/vendor/autoload.php')) {
