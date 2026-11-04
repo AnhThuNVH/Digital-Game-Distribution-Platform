@@ -2,3 +2,11 @@
 node_modules/
 
 .vscode/
+.playwright-mcp/
+.claude/
+
+# Local database backups (contain password hashes)
+/database/backup_*.sql
+
+# Tài liệu hướng dẫn chỉ giữ ở máy
+/HUONG_DAN_SU_DUNG.docx

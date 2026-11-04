@@ -1,5 +1,11 @@
-<section class="card">
-    <h2>Không tìm thấy</h2>
-    <p><?php echo htmlspecialchars($message ?? 'Trang bạn yêu cầu không tồn tại.', ENT_QUOTES, 'UTF-8'); ?></p>
-    <p><a href="<?php echo app_url('/games'); ?>">Quay lại danh sách trò chơi</a></p>
-</section>
+<div class="auth">
+    <div class="auth-card">
+        <span class="faint">Lỗi <?= (int)($status ?? 404) ?></span>
+        <h1><?= e($pageTitle ?? 'Đã có lỗi') ?></h1>
+        <p class="muted"><?= e($message) ?></p>
+        <div class="form-actions">
+            <a class="btn primary" href="<?= e(app_url('/')) ?>">Về trang chủ</a>
+            <a class="btn" href="<?= e(app_url('/games')) ?>">Khám phá trò chơi</a>
+        </div>
+    </div>
+</div>
