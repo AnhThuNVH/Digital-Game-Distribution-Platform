@@ -20,7 +20,7 @@ define('REFUND_WINDOW_DAYS', 14);
 
 // XAMPP defaults; import database/du_lieu.sql into the nen_tang_game_doc_lap_vi_v2 database.
 define('DB_HOST', '127.0.0.1');
-define('DB_NAME', 'nen_tang_game_doc_lap_vi_v2');
+define('DB_NAME', 'game_distribution_platform_db');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_PORT', 3306);
@@ -29,6 +29,14 @@ define('DB_PORT', 3306);
 define('APP_DIR', dirname(__DIR__));
 define('VIEWS_DIR', APP_DIR . '/templates');
 define('PUBLIC_DIR', APP_DIR . '/public');
+
+// Cấu hình gửi email (SMTP). File này nạp config/mail.local.php nếu có.
+require_once __DIR__ . '/mail.php';
+
+// Thư viện ngoài (PHPMailer) qua Composer.
+if (is_file(APP_DIR . '/vendor/autoload.php')) {
+    require_once APP_DIR . '/vendor/autoload.php';
+}
 
 // Đặt APP_DEBUG = true chỉ khi phát triển cục bộ. Không bao giờ hiện lỗi PHP cho người dùng.
 define('APP_DEBUG', false);
