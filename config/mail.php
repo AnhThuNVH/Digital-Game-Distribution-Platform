@@ -24,5 +24,5 @@ define('MAIL_USERNAME', '');
 define('MAIL_PASSWORD', '');
 
 // --- Địa chỉ người gửi ------------------------------------------------------
-define('MAIL_FROM_ADDRESS', 'datn2708@gmail.com');
+define('MAIL_FROM_ADDRESS', '');
 define('MAIL_FROM_NAME', 'Kho Game Độc Lập');
