@@ -117,6 +117,7 @@ class GameController extends Controller {
             AND (g.nguoi_tao_id IN ($in) OR EXISTS (SELECT 1 FROM tac_gia_tro_choi a WHERE a.tro_choi_id = g.ma AND a.nguoi_dung_id IN ($in))) ORDER BY g.ngay_cong_bo DESC LIMIT 4", [':g' => $gid]);
 
         $owned = OwnershipModel::has($uid, $gid);
+        $downloadCount = $owned ? (int)Model::scalar("SELECT COUNT(*) FROM url_tai_tro_choi WHERE tro_choi_id = :g AND trang_thai = 'active'", [':g' => $gid]) : 0;
         $inCart = $uid ? (bool)Model::scalar("SELECT 1 FROM muc_gio_hang i JOIN gio_hang c ON c.ma = i.gio_hang_id WHERE c.nguoi_dung_id = :u AND c.trang_thai = 'active' AND i.tro_choi_id = :g", [':u' => $uid, ':g' => $gid]) : false;
 
         $this->render('game/show', [
@@ -144,6 +145,7 @@ class GameController extends Controller {
             'forum' => $forum,
             'moreGames' => $moreGames,
             'owned' => $owned,
+            'downloadCount' => $downloadCount,
             'inCart' => $inCart,
             'isAuthor' => $isAuthor,
             'wishlisted' => $uid ? (bool)Model::scalar('SELECT 1 FROM tro_choi_yeu_thich WHERE nguoi_dung_id = :u AND tro_choi_id = :g', [':u' => $uid, ':g' => $gid]) : false,

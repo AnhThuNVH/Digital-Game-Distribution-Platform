@@ -624,7 +624,7 @@ class DevGameController extends Controller {
             $this->fail('Phân loại độ tuổi tối đa 40 ký tự, giấy phép 120 ký tự, liên kết 1000 ký tự.', $back);
         }
         if ($url !== '' && (!filter_var($url, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $url))) {
-            $this->fail('Liên kết chơi ngoài phải là địa chỉ http:// hoặc https:// hợp lệ.', $back);
+            $this->fail('Liên kết chơi trên web phải là địa chỉ http:// hoặc https:// hợp lệ.', $back);
         }
 
         $id = $game ? (int)$game['ma'] : 0;
