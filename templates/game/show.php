@@ -18,7 +18,7 @@ $canReview = $user && (int)$game['cho_phep_danh_gia'] && !$isAuthor;
 $commentsOn = (int)$game['cho_phep_binh_luan'] && (int)($settings['bat_cong_dong'] ?? 1);
 $showCreators = (int)($settings['hien_thi_nha_sang_tao'] ?? 1);
 $isPublic = in_array($game['trang_thai'], ['published', 'unlisted'], true);
-$playUrl = $game['url_choi_ngoai'] && preg_match('#^https?://#i', $game['url_choi_ngoai']) ? $game['url_choi_ngoai'] : null;
+$playUrl = game_play_url($game);
 $comment = function (array $c, bool $reply) use ($user, $base, $commentsOn) {
     $mine = $user && (int)$user['ma'] === (int)$c['nguoi_dung_id'];
     ?>
@@ -98,7 +98,12 @@ $comment = function (array $c, bool $reply) use ($user, $base, $commentsOn) {
         <div class="buy-actions">
             <?php if ($owned): ?>
                 <div class="split"><span class="owned">Đã có trong thư viện</span><a class="link small" href="<?= e(app_url('/library')) ?>">Mở thư viện</a></div>
-                <?php if ($playUrl): ?><a class="btn primary block" href="<?= e($playUrl) ?>" target="_blank" rel="noopener noreferrer">Chơi / tải về</a><?php endif; ?>
+                <?php if ($playUrl): ?>
+                    <a class="btn primary block" href="<?= e($playUrl) ?>" target="_blank" rel="noopener noreferrer">Chơi trên trình duyệt</a>
+                <?php endif; ?>
+                <?php if ($downloadCount > 0): ?>
+                    <a class="btn<?= $playUrl ? '' : ' primary' ?> block" href="<?= e(app_url($base . '/downloads')) ?>">Tải về<?= $downloadCount > 1 ? ' · ' . fmt_int($downloadCount) . ' liên kết' : '' ?></a>
+                <?php endif; ?>
             <?php elseif (!$isPublic): ?>
                 <p class="muted small">Trò chơi chưa mở bán.</p>
             <?php endif; ?>
