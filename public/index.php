@@ -97,6 +97,10 @@ $router->get('/auth/login', 'AuthController@showLogin');
 $router->post('/auth/login', 'AuthController@login');
 $router->get('/auth/register', 'AuthController@showRegister');
 $router->post('/auth/register', 'AuthController@register');
+$router->get('/auth/forgot-password', 'PasswordResetController@showForgotPassword');
+$router->post('/auth/forgot-password', 'PasswordResetController@sendResetCode');
+$router->get('/auth/reset-password', 'PasswordResetController@showResetPassword');
+$router->post('/auth/reset-password', 'PasswordResetController@resetPassword');
 $router->post('/auth/logout', 'AuthController@logout');
 
 // ------------------------------------------------------- player -------------
