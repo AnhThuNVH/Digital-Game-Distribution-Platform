@@ -989,6 +989,37 @@ INSERT INTO `ma_truy_cap_tro_choi` VALUES (5,15,53,'7b4af218b626c780830b90a18f1e
 UNLOCK TABLES;
 
 --
+-- Table structure for table `ma_xac_nhan_dat_lai_mat_khau`
+--
+
+DROP TABLE IF EXISTS `ma_xac_nhan_dat_lai_mat_khau`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ma_xac_nhan_dat_lai_mat_khau` (
+  `ma` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `nguoi_dung_id` bigint(20) unsigned NOT NULL,
+  `email` varchar(254) NOT NULL,
+  `ma_bam` varchar(255) NOT NULL,
+  `so_lan_thu` int(11) NOT NULL DEFAULT 0,
+  `da_su_dung` tinyint(1) NOT NULL DEFAULT 0,
+  `ngay_het_han` datetime NOT NULL,
+  `ngay_tao` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`ma`),
+  KEY `idx_reset_codes_user` (`nguoi_dung_id`,`da_su_dung`),
+  CONSTRAINT `ma_xac_nhan_dat_lai_mat_khau_ibfk_1` FOREIGN KEY (`nguoi_dung_id`) REFERENCES `nguoi_dung` (`ma`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ma_xac_nhan_dat_lai_mat_khau`
+--
+
+LOCK TABLES `ma_xac_nhan_dat_lai_mat_khau` WRITE;
+/*!40000 ALTER TABLE `ma_xac_nhan_dat_lai_mat_khau` DISABLE KEYS */;
+/*!40000 ALTER TABLE `ma_xac_nhan_dat_lai_mat_khau` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `media_tro_choi`
 --
 

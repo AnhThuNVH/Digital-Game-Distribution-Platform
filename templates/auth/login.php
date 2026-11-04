@@ -14,6 +14,7 @@
             <input class="input" id="password" type="password" name="password" required maxlength="72" autocomplete="current-password">
         </div>
         <button class="btn primary block" type="submit">Đăng nhập</button>
+        <p class="switch-line"><a href="<?= e(app_url('/auth/forgot-password')) ?>">Quên mật khẩu?</a></p>
         <p class="switch-line">Chưa có tài khoản? <a href="<?= e(app_url('/auth/register')) ?>">Tạo tài khoản</a></p>
     </form>
 </div>
