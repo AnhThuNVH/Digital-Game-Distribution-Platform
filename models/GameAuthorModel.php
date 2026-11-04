@@ -16,11 +16,11 @@ class GameAuthorModel extends Model {
     }
 
     public static function listForGame(int $gameId): array {
-        $sql = "SELECT t.*, u.ten_hien_thi, u.url_anh_dai_dien
+        $sql = "SELECT t.*, u.ten_dang_nhap, u.ten_hien_thi, u.url_anh_dai_dien
                 FROM " . self::$table . " t
                 INNER JOIN nguoi_dung u ON u.ma = t.nguoi_dung_id
                 WHERE t.tro_choi_id = :gid
-                ORDER BY t.thu_tu_hien_thi ASC";
+                ORDER BY t.thu_tu_hien_thi ASC, t.ngay_them ASC";
         $stmt = self::db()->prepare($sql);
         $stmt->execute([':gid' => $gameId]);
         return $stmt->fetchAll();

@@ -6,47 +6,45 @@
 class OwnershipModel extends Model {
     protected static $table = 'quyen_so_huu_tro_choi';
 
-    public static function grant(int $userId, int $gameId, string $type, ?int $orderItemId = null): int {
-        $sql = "INSERT INTO " . self::$table . "
-                    (nguoi_dung_id, tro_choi_id, chi_tiet_don_hang_id, loai_nhan_quyen)
-                VALUES (:user_id, :game_id, :order_item_id, :type)
-                ON DUPLICATE KEY UPDATE
-                    chi_tiet_don_hang_id = VALUES(chi_tiet_don_hang_id),
-                    loai_nhan_quyen = VALUES(loai_nhan_quyen),
-                    trang_thai = 'active',
-                    ngay_thu_hoi = NULL";
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([
-            ':user_id' => $userId,
-            ':game_id' => $gameId,
-            ':order_item_id' => $orderItemId,
-            ':type' => $type,
-        ]);
-        return (int)self::db()->lastInsertId();
+    /** Grant (or re-activate) ownership. Returns true when the user did not own it before. */
+    public static function grant(int $userId, int $gameId, string $type, ?int $orderItemId = null): bool {
+        $existing = self::one('SELECT ma, trang_thai FROM quyen_so_huu_tro_choi WHERE nguoi_dung_id = :u AND tro_choi_id = :g FOR UPDATE', [':u' => $userId, ':g' => $gameId]);
+        if ($existing && $existing['trang_thai'] === 'active') {
+            return false;
+        }
+        if ($existing) {
+            self::run("UPDATE quyen_so_huu_tro_choi SET trang_thai = 'active', ngay_thu_hoi = NULL, loai_nhan_quyen = :t, chi_tiet_don_hang_id = :oi, ngay_nhan_quyen = NOW() WHERE ma = :id",
+                [':t' => $type, ':oi' => $orderItemId, ':id' => (int)$existing['ma']]);
+            return true;
+        }
+        self::insert(['nguoi_dung_id' => $userId, 'tro_choi_id' => $gameId, 'loai_nhan_quyen' => $type, 'chi_tiet_don_hang_id' => $orderItemId]);
+        return true;
     }
 
     public static function has(int $userId, int $gameId): bool {
-        $row = self::db()->prepare("SELECT 1 FROM " . self::$table . " WHERE nguoi_dung_id = :uid AND tro_choi_id = :gid AND trang_thai = 'active' LIMIT 1");
-        $row->execute([':uid' => $userId, ':gid' => $gameId]);
-        return $row->fetch() !== false;
+        if ($userId <= 0) return false;
+        return (bool)self::scalar("SELECT 1 FROM quyen_so_huu_tro_choi WHERE nguoi_dung_id = :u AND tro_choi_id = :g AND trang_thai = 'active'", [':u' => $userId, ':g' => $gameId]);
     }
 
-    public static function listForUser(int $userId): array {
-        $sql = "SELECT g.*, o.loai_nhan_quyen, o.ngay_nhan_quyen,
-                       (SELECT m.url_media
-                        FROM media_tro_choi m
-                        WHERE m.tro_choi_id = g.ma
-                          AND m.loai_media IN ('cover', 'thumbnail')
-                        ORDER BY CASE m.loai_media WHEN 'cover' THEN 0 ELSE 1 END, m.thu_tu_sap_xep, m.ma
-                        LIMIT 1) AS anh_mo_rong
-                FROM " . self::$table . " o
-                INNER JOIN tro_choi g ON g.ma = o.tro_choi_id
-                WHERE o.nguoi_dung_id = :uid
-                  AND o.trang_thai = 'active'
-                  AND g.trang_thai = 'published'
-                ORDER BY o.ngay_nhan_quyen DESC";
-        $stmt = self::db()->prepare($sql);
-        $stmt->execute([':uid' => $userId]);
-        return $stmt->fetchAll();
+    /** Ids of the given games the user owns. */
+    public static function ownedIds(int $userId, array $gameIds = []): array {
+        if ($userId <= 0) return [];
+        $rows = self::column("SELECT tro_choi_id FROM quyen_so_huu_tro_choi WHERE nguoi_dung_id = :u AND trang_thai = 'active'", [':u' => $userId]);
+        $rows = array_map('intval', $rows);
+        return $gameIds ? array_values(array_intersect($rows, array_map('intval', $gameIds))) : $rows;
+    }
+
+    public static function library(int $userId, string $q = '', string $sort = 'recent'): array {
+        $params = [':u' => $userId];
+        $where = "o.nguoi_dung_id = :u AND o.trang_thai = 'active'";
+        if ($q !== '') {
+            $where .= ' AND g.tieu_de LIKE :q';
+            $params[':q'] = "%$q%";
+        }
+        $order = $sort === 'title' ? 'g.tieu_de ASC' : 'o.ngay_nhan_quyen DESC';
+        return self::query('SELECT ' . GameModel::cardColumns() . ", g.url_choi_ngoai, o.loai_nhan_quyen, o.ngay_nhan_quyen,
+                (SELECT r.ten_phien_ban FROM phien_ban_phat_hanh r WHERE r.tro_choi_id = g.ma AND r.cong_khai = 1 AND r.ngay_phat_hanh <= NOW() ORDER BY r.ngay_phat_hanh DESC, r.ma DESC LIMIT 1) AS phien_ban_moi
+            FROM quyen_so_huu_tro_choi o JOIN tro_choi g ON g.ma = o.tro_choi_id
+            WHERE $where ORDER BY $order", $params);
     }
 }

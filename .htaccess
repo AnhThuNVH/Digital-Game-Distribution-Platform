@@ -1,8 +1,10 @@
 Options -Indexes
 RewriteEngine On
 
-RewriteRule ^(?:config|core|controllers|models)(?:/|$) - [F,L]
-RewriteRule ^test\.sql$ - [F,L]
+# Source, templates, docs, design notes and SQL dumps are never served directly.
+RewriteRule ^(?:config|core|controllers|models|templates|template|docs|scripts|database|\.git|\.claude)(?:/|$) - [F,L]
+RewriteRule \.(?:sql|md|log|json|lock|env|ini)$ - [F,L]
+RewriteRule (?:^|/)\. - [F,L]
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
