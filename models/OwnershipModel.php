@@ -43,7 +43,8 @@ class OwnershipModel extends Model {
         }
         $order = $sort === 'title' ? 'g.tieu_de ASC' : 'o.ngay_nhan_quyen DESC';
         return self::query('SELECT ' . GameModel::cardColumns() . ", g.url_choi_ngoai, o.loai_nhan_quyen, o.ngay_nhan_quyen,
-                (SELECT r.ten_phien_ban FROM phien_ban_phat_hanh r WHERE r.tro_choi_id = g.ma AND r.cong_khai = 1 AND r.ngay_phat_hanh <= NOW() ORDER BY r.ngay_phat_hanh DESC, r.ma DESC LIMIT 1) AS phien_ban_moi
+                (SELECT r.ten_phien_ban FROM phien_ban_phat_hanh r WHERE r.tro_choi_id = g.ma AND r.cong_khai = 1 AND r.ngay_phat_hanh <= NOW() ORDER BY r.ngay_phat_hanh DESC, r.ma DESC LIMIT 1) AS phien_ban_moi,
+                (SELECT COUNT(*) FROM url_tai_tro_choi d WHERE d.tro_choi_id = g.ma AND d.trang_thai = 'active') AS so_lien_tai
             FROM quyen_so_huu_tro_choi o JOIN tro_choi g ON g.ma = o.tro_choi_id
             WHERE $where ORDER BY $order", $params);
     }

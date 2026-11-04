@@ -164,6 +164,19 @@ function game_url(array $game): string {
     return app_url('/games/' . rawurlencode((string)$game['duong_dan_rut_gon']));
 }
 
+/**
+ * The link to the game itself when it runs in the browser (or points at the
+ * project page). Null when the game has no such link or the link is not a
+ * valid http(s) address.
+ */
+function game_play_url(array $game): ?string {
+    $url = trim((string)($game['url_choi_ngoai'] ?? ''));
+    if ($url === '' || !preg_match('#^https?://#i', $url)) {
+        return null;
+    }
+    return $url;
+}
+
 /** Truncate plain text to a number of characters, on a word boundary. */
 /** Split a media credit "Ảnh: … · https://source" into [text, url]; url is '' when absent. */
 function media_credit(?string $credit): array {
@@ -331,6 +344,10 @@ function labels(string $group): array {
         'visibility' => ['public' => 'Công khai', 'unlisted' => 'Không liệt kê', 'private' => 'Riêng tư'],
         'coupon_type' => ['percent' => 'Phần trăm', 'fixed_amount' => 'Số tiền cố định'],
         'coupon_state' => ['active' => 'Đang dùng được', 'scheduled' => 'Chưa bắt đầu', 'expired' => 'Hết hạn', 'used_up' => 'Hết lượt', 'disabled' => 'Đã tắt'],
+        'download_provider' => ['google_drive' => 'Google Drive', 'onedrive' => 'OneDrive', 'dropbox' => 'Dropbox', 'mediafire' => 'MediaFire',
+            'mega' => 'MEGA', 'wetransfer' => 'WeTransfer', 'github' => 'GitHub', 'sourceforge' => 'SourceForge', 'itch_io' => 'itch.io', 'custom' => 'Liên kết khác'],
+        'download_platform' => ['any' => 'Mọi nền tảng', 'windows' => 'Windows', 'macos' => 'macOS', 'linux' => 'Linux', 'android' => 'Android'],
+        'download_link_status' => ['pending' => 'Chờ duyệt', 'active' => 'Đang hoạt động', 'rejected' => 'Bị từ chối', 'hidden' => 'Đã ẩn'],
     ];
     return $labels[$group] ?? [];
 }

@@ -1,6 +1,5 @@
 <?php
 /** Owned games. @var array $games @var string $q @var string $sort @var int $wishCount */
-$playable = static fn(?string $url): bool => $url !== null && preg_match('#^https?://#i', $url) === 1;
 ?>
 <div class="title-row">
     <div>
@@ -43,11 +42,17 @@ $playable = static fn(?string $url): bool => $url !== null && preg_match('#^http
                             <a class="link" href="<?= e(game_url($g)) ?>"><?= e($g['tieu_de']) ?></a>
                             <span class="sub"><?= e(label('ownership', $g['loai_nhan_quyen'])) ?> · <?= e(fmt_date($g['ngay_nhan_quyen'])) ?><?= $g['phien_ban_moi'] ? ' · Bản mới nhất ' . e($g['phien_ban_moi']) : '' ?></span>
                         </div>
-                        <?php if ($playable($g['url_choi_ngoai'])): ?>
-                            <a class="btn sm primary" href="<?= e($g['url_choi_ngoai']) ?>" target="_blank" rel="noopener noreferrer">Chơi / Tải về</a>
-                        <?php else: ?>
-                            <a class="btn sm" href="<?= e(game_url($g)) ?>#releases">Xem bản phát hành</a>
-                        <?php endif; ?>
+                        <?php $playUrl = game_play_url($g); ?>
+                        <div class="cluster">
+                            <?php if ($playUrl): ?>
+                                <a class="btn sm primary" href="<?= e($playUrl) ?>" target="_blank" rel="noopener noreferrer">Chơi</a>
+                            <?php endif; ?>
+                            <?php if ((int)$g['so_lien_tai'] > 0): ?>
+                                <a class="btn sm<?= $playUrl ? '' : ' primary' ?>" href="<?= e(app_url('/games/' . rawurlencode($g['duong_dan_rut_gon']) . '/downloads')) ?>">Tải về<?= (int)$g['so_lien_tai'] > 1 ? ' · ' . fmt_int((int)$g['so_lien_tai']) : '' ?></a>
+                            <?php elseif (!$playUrl): ?>
+                                <a class="btn sm" href="<?= e(game_url($g)) ?>#releases">Xem bản phát hành</a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
