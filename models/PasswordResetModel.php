@@ -53,6 +53,15 @@ class PasswordResetModel extends Model {
         );
     }
 
+    /** Thời điểm yêu cầu gửi mã gần nhất của tài khoản (null nếu chưa có). */
+    public static function lastRequestedAt(int $userId): ?int {
+        $value = self::scalar(
+            'SELECT UNIX_TIMESTAMP(MAX(ngay_tao)) FROM ' . self::$table . ' WHERE nguoi_dung_id = :u',
+            [':u' => $userId]
+        );
+        return $value === null ? null : (int)$value;
+    }
+
     /** Đánh dấu mã đã dùng. */
     public static function markUsed(int $id): bool {
         return self::update($id, ['da_su_dung' => 1]);
