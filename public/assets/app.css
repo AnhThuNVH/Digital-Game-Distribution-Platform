@@ -1,15 +1,15 @@
 /* Kho Game Độc Lập — one design system for every screen.
-   Direction: true-black flat. Elevation by lightness alone,
+   Direction: soft-black flat. Elevation by lightness alone,
    no borders or shadows on cards, lime only on data (prices, discounts, "owned"), never on controls. */
 
 :root {
-  --ground: #000000;
-  --surface: #111111;
-  --raised: #2a2a2a;
-  --well: #1b1b1b;
-  --border: #1a1a1a;
-  --rule: #161616;
-  --control: #444444;
+  --ground: #0d0d0f;
+  --surface: #151517;
+  --raised: #262629;
+  --well: #1c1c1f;
+  --border: #1e1e21;
+  --rule: #191a1c;
+  --control: #42424a;
   --text: #ffffff;
   --nav: #bbbbbb;
   --muted: #b4b4b4;
@@ -19,11 +19,11 @@
   --negative: #e5484d;
   --warning: #e5a93b;
   --primary: #ffffff;
-  --primary-ink: #000000;
+  --primary-ink: #0d0d0f;
   --pill-positive-bg: #222a10; --pill-positive-ink: #c6f24e;
   --pill-negative-bg: #2c1a20; --pill-negative-ink: #e5566f;
   --pill-warning-bg: #2b2414; --pill-warning-ink: #e5a93b;
-  --pill-neutral-bg: #222222; --pill-neutral-ink: #ffffff;
+  --pill-neutral-bg: #212124; --pill-neutral-ink: #ffffff;
   --chart-1: #c6f24e; --chart-2: #e6e6e6; --chart-3: #6b6b6b; --grid: #2b2b2b;
 
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -97,8 +97,8 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--gap) 0; 
 .account > summary:hover { background: var(--surface); }
 .account .menu { position: absolute; right: 0; top: calc(100% + 8px); width: 240px; padding: 8px; border-radius: 16px; background: var(--raised); display: grid; gap: 2px; z-index: 30; }
 .account .menu a, .account .menu button { display: flex; align-items: center; width: 100%; height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text); text-align: left; cursor: pointer; }
-.account .menu a:hover, .account .menu button:hover { background: #343434; }
-.account .menu .who { padding: 8px 12px 10px; border-bottom: 1px solid #363636; margin-bottom: 6px; }
+.account .menu a:hover, .account .menu button:hover { background: #303035; }
+.account .menu .who { padding: 8px 12px 10px; border-bottom: 1px solid #323238; margin-bottom: 6px; }
 .account .menu .who span { display: block; color: var(--muted); font-size: var(--fs-small); }
 .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--raised); object-fit: cover; flex: none; }
 .avatar.lg { width: 72px; height: 72px; }
@@ -190,7 +190,7 @@ a.tag:hover { color: var(--text); }
 
 /* ---------- controls ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: var(--control-height); padding: 0 16px; border-radius: var(--radius-control); border: 0; background: var(--raised); color: var(--text); font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color var(--t-hover) ease, transform 120ms var(--ease-out); }
-.btn:hover { background: #363636; }
+.btn:hover { background: #303035; }
 .btn:active { transform: translateY(1px); }
 .btn.primary { background: var(--primary); color: var(--primary-ink); }
 .btn.primary:hover { background: #e2e2e2; }
@@ -215,7 +215,7 @@ form.inline { display: inline; }
 .field .hint { color: var(--faint); font-size: var(--fs-small); line-height: 16px; }
 .field .error-text { color: var(--pill-negative-ink); font-size: var(--fs-small); }
 .input { width: 100%; height: var(--input-height); padding: 0 14px; border: 1px solid var(--control); border-radius: 12px; background: var(--ground); color: var(--text); transition: border-color var(--t-hover) ease; }
-.input:hover { border-color: #5a5a5a; }
+.input:hover { border-color: #565660; }
 .input:focus { outline: none; border-color: var(--text); }
 .input::placeholder { color: var(--faint); }
 textarea.input { height: auto; min-height: 120px; padding: 10px 14px; line-height: 20px; resize: vertical; }
@@ -289,7 +289,7 @@ input[type="file"].input { padding: 8px 14px; height: auto; }
 .feature-art { margin: 0; }
 .feature-art > a { display: block; height: 100%; }
 .feature-art img { width: 100%; height: 100%; object-fit: cover; }
-.feature-art figcaption { position: absolute; left: 12px; bottom: 12px; max-width: calc(100% - 24px); padding: 5px 12px; border-radius: 999px; background: #000; color: var(--muted); font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feature-art figcaption { position: absolute; left: 12px; bottom: 12px; max-width: calc(100% - 24px); padding: 5px 12px; border-radius: 999px; background: rgba(13, 13, 15, 0.86); color: var(--muted); font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .feature-art figcaption a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
 .feature-info { display: flex; flex-direction: column; gap: 14px; background: var(--surface); border-radius: var(--radius-card); padding: 26px; }
 .feature-info h2 { font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -0.015em; }
@@ -490,7 +490,7 @@ a.row-link + a.row-link { border-top-color: transparent; }
 .rank-row.compact img, .rank-row.compact .thumb { width: 72px; height: 40px; }
 .sub-head { margin: 24px 0 8px; font-size: var(--fs-body); font-weight: 600; }
 .chips-row { margin-bottom: 20px; }
-.game-page.themed { --ground: var(--page-bg, #000000); --text: var(--page-ink, #ffffff); background: var(--page-bg, transparent); color: var(--page-ink, inherit); border-radius: var(--radius-card); }
+.game-page.themed { --ground: var(--page-bg, #0d0d0f); --text: var(--page-ink, #ffffff); background: var(--page-bg, transparent); color: var(--page-ink, inherit); border-radius: var(--radius-card); }
 .game-page.themed .prose a, .game-page.themed .facts dd a, .game-page.themed a.link { color: var(--page-link, inherit); }
 .game-page.themed.has-bg { padding: 18px; }
 .game-page.layout-wide .game-body { grid-template-columns: minmax(0, 1fr) 300px; }
