@@ -2,7 +2,7 @@
 
 An open-source digital game distribution platform built with PHP and MySQL, inspired by Steam and itch.io.
 
-This project was developed as part of the "Open Source Software Development" course.
+Developed as part of the **Open Source Software Development** course.
 
 ## Contributors
 
@@ -11,21 +11,48 @@ This project was developed as part of the "Open Source Software Development" cou
 - Nguyễn Võ Hoàng Anh Thư
 - Hồ Xuân Phúc
 
-## Run with XAMPP
+## Requirements
 
-1. Place the project folder in the XAMPP `htdocs` directory.
-2. Start **Apache** and **MySQL** from the XAMPP Control Panel.
-3. In phpMyAdmin, create the `nen_tang_game_doc_lap_vi_v2` database (collation `utf8mb4_unicode_ci`), select it and import `database/du_lieu.sql`. The file contains the full schema and all current data; keep `public/uploads/` with the project, because the data points to the images stored there.
-4. Confirm the database settings in `config/config.php`. They match the default XAMPP MySQL account (`root`, no password).
-5. Open `http://localhost/<project-folder>/` and register an account.
+- PHP 8.2 or newer
+- MySQL
+- Composer 2.x
+- [XAMPP](https://www.apachefriends.org/download.html) (Apache and MySQL)
+- PHP extensions: `mbstring`, `openssl`
 
-The project uses Apache rewrite rules to route page URLs through the front controller. If URLs return 404, enable `mod_rewrite` and allow `.htaccess` overrides (`AllowOverride All`) for `htdocs`.
+## Installation
 
-The schema stores game metadata and media URLs; cover images uploaded from the game form are stored under `public/uploads/game-covers` (JPG, PNG, WebP or GIF, up to 5 MB), while downloadable game files are not stored. Cart checkout is a demo flow only: it records a simulated paid order and grants the selected games to the account library without charging money or contacting a payment provider.
+1. Clone or download the project into the XAMPP `htdocs` directory.
+2. Start **Apache** and **MySQL** from XAMPP Control Panel.
+3. Open phpMyAdmin and create the project database using the `utf8mb4_unicode_ci` collation.
+4. Import the SQL file containing the complete database schema and data from the `database/` directory.
+5. Check the database configuration in `config/config.php`.
+6. Install dependencies from the project root:
 
-## Admin access
+   ```bash
+   composer install
+   ```
 
-After registering the account that should manage the platform, run this once in phpMyAdmin (replace `YOUR_USERNAME` with that account's login name) to grant it the initial admin role:
+7. Configure email by copying the example file:
+
+   ```bash
+   copy config\mail.example.php config\mail.php
+   ```
+
+   Update the SMTP settings in `config/mail.php` to enable password-reset emails.
+
+8. Open the application:
+
+   ```text
+   http://localhost/<project-folder>/
+   ```
+
+9. Register an account to get started.
+
+**Note:** Keep `public/uploads/` intact because the database references images stored in this directory.
+
+## Admin Access
+
+To grant administrator privileges, run the following SQL in phpMyAdmin after registering an account. Replace `YOUR_USERNAME` with the account's username.
 
 ```sql
 INSERT IGNORE INTO nguoi_dung_vai_tro (nguoi_dung_id, vai_tro_id)
@@ -34,5 +61,3 @@ FROM nguoi_dung u
 JOIN vai_tro r ON r.ma_vai_tro = 'admin'
 WHERE u.ten_dang_nhap = 'YOUR_USERNAME';
 ```
-
-Admins can remove games from public access in **Quản trị → Trò chơi**; the game is hidden rather than physically deleted so related order and ownership history remains intact. In **Quản trị → Người dùng**, admins can assign roles. The current admin cannot change their own roles, and the final admin role cannot be removed.
