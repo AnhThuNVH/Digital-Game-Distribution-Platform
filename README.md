@@ -50,6 +50,26 @@ Developed as part of the **Open Source Software Development** course.
 
 **Note:** Keep `public/uploads/` intact because the database references images stored in this directory.
 
+## Demo accounts
+
+`database/du_lieu.sql` ships with a complete set of sample accounts. Every one of them uses the same password:
+
+```text
+a1234567
+```
+
+Sign in at `http://localhost/<project-folder>/auth/login` with the username (or the email address) from the table below:
+
+| Username | Email | Roles | What it demonstrates |
+|---|---|---|---|
+| `admin_test` | `admin_test@test.local` | player, admin | Full administration area: user management, game moderation, audits, reports, payouts |
+| `mod_test` | `mod_test@test.local` | player, moderator | Moderation queue, content review, report handling |
+| `dev_test` | `dev_test@test.local` | player, developer | Developer dashboard, own games, releases, download links, sales and payouts |
+| `player_test` | `player_test@test.local` | player | Store browsing, cart, library, reviews, comments, forums |
+| `demo_dev` | `demo_dev@mau.local` | developer | Minh Khang Studio — owner of the sample project, sees every download link and its moderation state |
+| `demo_player` | `demo_player@mau.local` | player | Bảo An — already owns the sample game, so the download links are visible |
+| `demo_mirror` | `demo_mirror@mau.local` | player | Chí Dũng — submitted a mirror that is still waiting for the developer to approve it |
+
 ## Admin Access
 
 To grant administrator privileges, run the following SQL in phpMyAdmin after registering an account. Replace `YOUR_USERNAME` with the account's username.
